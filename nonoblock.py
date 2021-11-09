@@ -1,4 +1,8 @@
-from itertools import permutations
+### NONOBLOCK
+### Generates all the possible permutations for each line in the puzzle according to the grid size, blocks, and rules of Picross. Wihout duplicates!
+
+from sympy.utilities.iterables import multiset_permutations
+import re
 
 
 def create_elements(blocks:list, size:int) -> list:
@@ -37,43 +41,6 @@ def check_order(combination:list, blocks:list) -> bool:
     
     return order == blocks                              # checks if this combination's block order matches the required block instructions
 
-
-def create_combinations(blocks:list, size:int) -> list:
-    '''
-    Main function to create all *possible* combinations, given a set of block instructions and a cell size.
-
-    blocks: Array of spaces required. Ex: 2 1 would be [2,1]
-    size: The amount of cells in the row
-    '''
-    elements = create_elements(blocks, size)
-    all_combinations = list(permutations(elements))
-
-    possible_combinations = [c for c in all_combinations if check_order(c, blocks) and check_valid(c)]
-    possible_combinations = remove_dupes(possible_combinations)
-
-    return possible_combinations
-    # https://stackoverflow.com/questions/7961363/removing-duplicates-in-lists
-    # https://www.geeksforgeeks.org/python-ways-to-remove-duplicates-from-list/
-    # https://stackoverflow.com/questions/13464152/typeerror-unhashable-type-list-when-using-built-in-set-function
-
-
-####################################################################################################################
-
-def remove_dupes(list:list) -> list:
-    '''
-    Removes duplicate combinations that look different due to the array elementd but are essentially the same.
-    Returns list with only unique combinations.
-    '''
-    unique_list = []
-    unique_str = []
-    for l in list:
-        block_string = block2string(l)
-        if block_string not in unique_str:
-            unique_list.append(l)
-            unique_str.append(block_string)
-    
-    return unique_list
-
 def check_valid(row:list):
     '''
     Checks if the permutation is valid within the rules of Nonograms: blocks must be sperated by a space.
@@ -87,35 +54,35 @@ def check_valid(row:list):
     
     return True
 
+def create_combinations(blocks:list, size:int) -> list:
+    '''
+    Main function to create all *possible* combinations, given a set of block instructions and a cell size.
+
+    blocks: Array of spaces required. Ex: 2 1 would be [2,1]
+    size: The amount of cells in the row
+    '''
+    if blocks == [0]: return [f"{'.' * size}"]
+
+    elements = create_elements(blocks, size)
+    all_combinations = list(multiset_permutations(elements))
+
+    possible_combinations = [c for c in all_combinations if check_order(c, blocks) and check_valid(c)]
+    possible_combinations = [block2string(c) for c in possible_combinations]
+    possible_combinations = list(set(possible_combinations))
+
+    return possible_combinations
+
+
+#####################################################################################
 
 def block2string(l:list) -> str:
     '''
-    Converts the 2D Array blocks into readable strings.
+    Converts the 2D Array blocks into readable strings USING REGEX instead of loops. This is the fastest way of found to achieve this result.
     Example: (['X', '.'], ['X'], ['.'], ['.']) -> 'X.X..'
     '''
-    string = ''
-    for block in l:
-        for i in block:
-            string += str(i)
-    
+    string = re.sub('[^A-Za-z0-9.]+', '', str(l))
     return string
 
 
-####################################################################################################################
 
-
-if __name__ == '__main__':
-    SIZE = 5
-    BLOCKS = [2,1]
-
-    print(f'Size: {SIZE}')
-    print(f'Blocks: {BLOCKS}')
-    print('-------')
-
-    combinations = create_combinations(BLOCKS, SIZE)
-    for c in combinations: print(c)#print(f'|{block2string(c)}|')
-
-    comb_num = len(combinations)
-    print(f'>>> {comb_num} possible solutions')
-else:
-    print('NONOBLOCK IMPORTED')
+#####################################################################################
